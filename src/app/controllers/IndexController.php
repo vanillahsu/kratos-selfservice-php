@@ -97,9 +97,14 @@ class IndexController extends ControllerBase
             $result = $frontend_api->getRegistrationFlow($flow, $cookie);
             $this->view->ui = $result->getUi();
         } catch (Exception $e) {
-            print_r($e);
-            $this->logger->debug($e);
-            #    return $this->response->redirect($redirect_url, true, 303);
+            $error = $e->getResponseObject()->getError();
+            $code = $error->getCode();
+            if ($code == 404 || $code == 410 || $code == 403) {
+                if ($error->getId() == 'session_aal2_required') {
+                    // XXX need to handle with authenticatorAssuranceLevelError
+                }
+                return $this->response->redirect($redirect_url, true, 303);
+            }
         }
     }
 }
