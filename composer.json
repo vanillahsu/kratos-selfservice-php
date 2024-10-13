@@ -1,0 +1,26 @@
+{
+    "name": "freebsd/kratos-selfservice-ui-php",
+    "type": "project",
+    "require": {
+        "ory/kratos-client-php": "1.2.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "Freebsd\\KratosSelfserviceUiPhp\\": "src/"
+        }
+    },
+    "scripts": {
+        "test": [
+            "@php 1.php"
+        ]
+    },
+    "require-dev": {
+        "phalcon/devtools": "^5.0@dev",
+        "10up/phpcs-composer": "^3.0"
+    },
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
+    }
+}
