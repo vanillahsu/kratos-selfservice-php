@@ -79,9 +79,11 @@ class IndexController extends ControllerBase
             'registration',
             $params
         );
-        $this->logger->debug($redirect_url);
 
         if (!$flow) {
+            $this->logger->debug(
+                "No flow ID found in URL query initializing login flow"
+            );
             return $this->response->redirect($redirect_url, true, 303);
         }
 
@@ -94,6 +96,66 @@ class IndexController extends ControllerBase
             $cookie = $this->request->getHeader('Cookie');
 
             $result = $frontend_api->getRegistrationFlow($flow, $cookie);
+            $this->view->data = ConvertToForm($result->getUi());
+        } catch (Exception $e) {
+            $error = $e->getResponseObject()->getError();
+            $code = $error->getCode();
+            if ($code == 404 || $code == 410 || $code == 403) {
+                if ($error->getId() == 'session_aal2_required') {
+                    // XXX need to handle with authenticatorAssuranceLevelError
+                }
+                return $this->response->redirect($redirect_url, true, 303);
+            }
+        }
+    }
+
+    public function verifycationAction()
+    {
+        $flow = $this->request->get('flow');
+        $return_to = $this->request->get('return_to') ?? '';
+        $message = $this->request->get('message');
+
+        $params = array("return_to=$return_to");
+
+        $redirect_url = getUrlForFlow(
+            $this->config->kratos->api_host,
+            'verification',
+            $params
+        );
+
+        if (!isset($flow)) {
+            $this->logger->debug(
+                "No flow ID found in URL query initializing login flow"
+            );
+            return $this->response->redirect($redirect_url, true, 303);
+        }
+
+        $config = Configuration::getDefaultConfiguration()->setHost(
+            $this->config->kratos->browser_host
+        );
+        $client = new Client;
+        $frontend_api = new FrontendApi($client, $config);
+        try {
+            $cookie = $this->request->getHeader('Cookie');
+
+            $result = $frontend_api->getVerificationFlow($flow, $cookie);
+
+            if ($return_to == '') {
+                $return_to = $result->getReturnTo() ?? '';
+            }
+
+            $params = array("return_to=$return_to");
+            $registration_url = getUrlForFlow(
+                $this->config->kratos->api_host,
+                'registration',
+                $params
+            );
+
+            if (isset($message)) {
+                $m = json_decode($message);
+                print_r($m);
+            }
+
             $this->view->data = ConvertToForm($result->getUi());
         } catch (Exception $e) {
             $error = $e->getResponseObject()->getError();
