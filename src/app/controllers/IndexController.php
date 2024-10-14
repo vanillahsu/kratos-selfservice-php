@@ -109,7 +109,7 @@ class IndexController extends ControllerBase
         }
     }
 
-    public function verifycationAction()
+    public function verificationAction()
     {
         $flow = $this->request->get('flow');
         $return_to = $this->request->get('return_to') ?? '';
