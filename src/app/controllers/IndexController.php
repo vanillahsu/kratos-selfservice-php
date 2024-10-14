@@ -1,5 +1,4 @@
-<?php
-declare(strict_types=1);
+<?php declare(strict_types=1);
 
 require_once BASE_PATH . '/../vendor/autoload.php';
 require_once APP_PATH . '/library/helper.php';
@@ -95,7 +94,7 @@ class IndexController extends ControllerBase
             $cookie = $this->request->getHeader('Cookie');
 
             $result = $frontend_api->getRegistrationFlow($flow, $cookie);
-            $this->view->ui = $result->getUi();
+            $this->view->data = ConvertToForm($result->getUi());
         } catch (Exception $e) {
             $error = $e->getResponseObject()->getError();
             $code = $error->getCode();
@@ -109,4 +108,4 @@ class IndexController extends ControllerBase
     }
 }
 
-# vim: set et sw=4 sts=4 ts=4:
+// vim: set et sw=4 sts=4 ts=4:

@@ -1,5 +1,4 @@
-<?php
-declare(strict_types=1);
+<?php declare(strict_types=1);
 
 use Phalcon\Html\Escaper;
 use Phalcon\Flash\Direct as Flash;
@@ -152,4 +151,4 @@ $di->setShared(
     }
 );
 
-# vim: set et sw=4 sts=4 ts=4:
+// vim: set et sw=4 sts=4 ts=4:

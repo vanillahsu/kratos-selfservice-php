@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 /**
  * Modified: prepend directory path of current file,
  * because of this file own different ENV under between Apache and command line.
@@ -27,4 +27,4 @@ return new \Phalcon\Config\Config(
     ]
 );
 
-# vim: set et sw=4 sts=4 ts=4:
+// vim: set et sw=4 sts=4 ts=4:
