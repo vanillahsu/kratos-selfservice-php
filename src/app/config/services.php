@@ -1,5 +1,7 @@
 <?php declare(strict_types=1);
 
+require_once BASE_PATH . '/../vendor/autoload.php';
+
 use Phalcon\Html\Escaper;
 use Phalcon\Flash\Direct as Flash;
 use Phalcon\Http\Response\Cookies;
@@ -139,7 +141,7 @@ $di->setShared(
 $di->setShared(
     'logger',
     function () {
-        $adapter = new Stream('main.log');
+        $adapter = new Stream('/tmp/main.log');
         $logger = new Logger(
             'messages',
             [
