@@ -15,16 +15,20 @@ use Ory\Kratos\Client\Model\UiText;
 
 class IndexController extends ControllerBase
 {
+    public function initialize()
+    {
+        $config = Configuration::getDefaultConfiguration()->setHost(
+            $this->config->kratos->browser_host
+        );
+        $client = new Client;
+        $this->api = new FrontendApi($client, $config);
+    }
+
     public function errorAction()
     {
         $id = $this->request->get('id');
         if ($id) {
-            $config = Configuration::getDefaultConfiguration()->setHost(
-                $this->config->kratos->browser_host
-            );
-            $client = new Client;
-            $frontend_api = new FrontendApi($client, $config);
-            $result = $frontend_api->getFlowError($id);
+            $result = $this->api->getFlowError($id);
             $this->view->error = $result->getError()["reason"];
         }
     }
@@ -70,14 +74,9 @@ class IndexController extends ControllerBase
             return $this->response->redirect($redirect_url, true, 303);
         }
 
-        $config = Configuration::getDefaultConfiguration()->setHost(
-            $this->config->kratos->browser_host
-        );
-        $client = new Client;
-        $frontend_api = new FrontendApi($client, $config);
         try {
             $cookie = $this->request->getHeader('Cookie');
-            $result = $frontend_api->getLoginFlow($flow, $cookie);
+            $result = $this->api->getLoginFlow($flow, $cookie);
             $ui = $result->getUi();
             $messages = $ui->getMessages();
             if ($return_to === '') {
@@ -88,7 +87,6 @@ class IndexController extends ControllerBase
                 foreach ($messages as $message) {
                     if ($message->getId() === 4000010) {
                         return _redirectToVerificationFlow(
-                            $frontend_api,
                             $return_to,
                             $ui
                         );
@@ -134,12 +132,11 @@ class IndexController extends ControllerBase
     }
 
     private function _getLogoutUrl(
-        FrontendApi $api,
         string $return_to
     ) {
         try {
             $cookie = $this->request->getHeader('Cookie');
-            $result = $api->createBrowserLogoutFlow($cookie, $return_to);
+            $result = $this->api->createBrowserLogoutFlow($cookie, $return_to);
             return $result->getLogoutUrl();
         } catch (Exception $e) {
             $this->logger->debug('Unable to create logout URL: ' . $e->getMessage());
@@ -147,7 +144,6 @@ class IndexController extends ControllerBase
     }
 
     private function _redirectToVerificationFlow(
-        FrontendApi $api,
         string $return_to,
         UiContainer $ui
     ) {
@@ -156,7 +152,7 @@ class IndexController extends ControllerBase
                 $result,
                 $_,
                 $headers
-            ] = $api->createBrowserVerificationFlowWithHttpInfo(
+            ] = $this->api->createBrowserVerificationFlowWithHttpInfo(
                 $return_to
             );
 
@@ -181,6 +177,28 @@ class IndexController extends ControllerBase
 
             return $this->response->redirect($redirect_url, true, 303);
         }
+    }
+
+    public function recoveryAction()
+    {
+        $flow = $this->request->get('flow');
+        $return_to = $this->request->get('return_to');
+
+        $params = "return_to=$return_to";
+        $redirect_url = getUrlForFlow(
+            $this->config->kratos->browser_host,
+            'recovery',
+            $params
+        );
+
+        if (!isset($flow)) {
+            $this->logger->debug(
+                "No flow ID found in URL query initializing login flow"
+            );
+            return $this->response->redirect($redirect_url, true, 303);
+        }
+
+
     }
 
     public function registrationAction()
@@ -227,15 +245,9 @@ class IndexController extends ControllerBase
             return $this->response->redirect($redirect_url, true, 303);
         }
 
-        $config = Configuration::getDefaultConfiguration()->setHost(
-            $this->config->kratos->browser_host
-        );
-        $client = new Client;
-        $frontend_api = new FrontendApi($client, $config);
         try {
             $cookie = $this->request->getHeader('Cookie');
-
-            $result = $frontend_api->getRegistrationFlow($flow, $cookie);
+            $result = $this->api->getRegistrationFlow($flow, $cookie);
             $this->view->data = ConvertToForm($result->getUi());
         } catch (Exception $e) {
             $error = $e->getResponseObject()->getError();
@@ -270,15 +282,9 @@ class IndexController extends ControllerBase
             return $this->response->redirect($redirect_url, true, 303);
         }
 
-        $config = Configuration::getDefaultConfiguration()->setHost(
-            $this->config->kratos->browser_host
-        );
-        $client = new Client;
-        $frontend_api = new FrontendApi($client, $config);
         try {
             $cookie = $this->request->getHeader('Cookie');
-
-            $result = $frontend_api->getVerificationFlow($flow, $cookie);
+            $result = $this->api->getVerificationFlow($flow, $cookie);
 
             if ($return_to == '') {
                 $return_to = $result->getReturnTo() ?? '';
