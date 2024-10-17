@@ -7,6 +7,7 @@
 require_once APP_PATH . '/library/helper.php';
 
 use GuzzleHttp\Client;
+use Ory\Kratos\Client\ApiException;
 use Ory\Kratos\Client\Api\FrontendApi;
 use Ory\Kratos\Client\Configuration;
 use Ory\Kratos\Client\Model\UiNodeAttributes;
@@ -120,62 +121,7 @@ class IndexController extends ControllerBase
 
             $this->view->data = ConvertToForm($ui);
         } catch (Exception $e) {
-            $error = $e->getResponseObject()->getError();
-            $code = $error->getCode();
-            if ($code == 404 || $code == 410 || $code == 403) {
-                if ($error->getId() == 'session_aal2_required') {
-                    // XXX need to handle with authenticatorAssuranceLevelError
-                }
-                return $this->response->redirect($redirect_url, true, 303);
-            }
-        }
-    }
-
-    private function _getLogoutUrl(
-        string $return_to
-    ) {
-        try {
-            $cookie = $this->request->getHeader('Cookie');
-            $result = $this->api->createBrowserLogoutFlow($cookie, $return_to);
-            return $result->getLogoutUrl();
-        } catch (Exception $e) {
-            $this->logger->debug('Unable to create logout URL: ' . $e->getMessage());
-        }
-    }
-
-    private function _redirectToVerificationFlow(
-        string $return_to,
-        UiContainer $ui
-    ) {
-        try {
-            [
-                $result,
-                $_,
-                $headers
-            ] = $this->api->createBrowserVerificationFlowWithHttpInfo(
-                $return_to
-            );
-
-            if (array_key_exists('Set-Cookie', $headers)) {
-                $this->cookies->set('Set-Cookie', $headers["Set-Cookie"]);
-            }
-
-            $verification_params = array(
-                "flow=$result->getId()",
-                "message=" . json_encode($ui->getMessages())
-            );
-            $redirect_url = getUrlForFlow('/', 'verification', $verification_params);
-
-            return $this->response->redirect($redirect_url, false, 303);
-        } catch (Exception $e) {
-            $params = array("return_to=$return_to");
-            $redirect_url = getUrlForFlow(
-                $this->config->kratos->browser_host,
-                'verification',
-                $params
-            );
-
-            return $this->response->redirect($redirect_url, true, 303);
+            return _redirectOnSoftError($e, $redirect_url);
         }
     }
 
@@ -198,7 +144,11 @@ class IndexController extends ControllerBase
             return $this->response->redirect($redirect_url, true, 303);
         }
 
+        try {
 
+        } catch(Exception $e) {
+
+        }
     }
 
     public function registrationAction()
@@ -250,14 +200,7 @@ class IndexController extends ControllerBase
             $result = $this->api->getRegistrationFlow($flow, $cookie);
             $this->view->data = ConvertToForm($result->getUi());
         } catch (Exception $e) {
-            $error = $e->getResponseObject()->getError();
-            $code = $error->getCode();
-            if ($code == 404 || $code == 410 || $code == 403) {
-                if ($error->getId() == 'session_aal2_required') {
-                    // XXX need to handle with authenticatorAssuranceLevelError
-                }
-                return $this->response->redirect($redirect_url, true, 303);
-            }
+            return _redirectOnSoftError($e, $redirect_url);
         }
     }
 
@@ -304,20 +247,73 @@ class IndexController extends ControllerBase
 
             $this->view->data = ConvertToForm($result->getUi());
         } catch (Exception $e) {
-            $error = $e->getResponseObject()->getError();
-            $code = $error->getCode();
-            if ($code == 404 || $code == 410 || $code == 403) {
-                if ($error->getId() == 'session_aal2_required') {
-                    // XXX need to handle with authenticatorAssuranceLevelError
-                }
-                return $this->response->redirect($redirect_url, true, 303);
-            }
+            return _redirectOnSoftError($e, $redirect_url);
         }
     }
 
     public function welcomeAction()
     {
     }
-}
 
+    private function _getLogoutUrl(
+        string $return_to
+    ) {
+        try {
+            $cookie = $this->request->getHeader('Cookie');
+            $result = $this->api->createBrowserLogoutFlow($cookie, $return_to);
+            return $result->getLogoutUrl();
+        } catch (Exception $e) {
+            $this->logger->debug('Unable to create logout URL: ' . $e->getMessage());
+        }
+    }
+
+    private function _redirectToVerificationFlow(
+        string $return_to,
+        UiContainer $ui
+    ) {
+        try {
+            [
+                $result,
+                $_,
+                $headers
+            ] = $this->api->createBrowserVerificationFlowWithHttpInfo(
+                $return_to
+            );
+
+            if (array_key_exists('Set-Cookie', $headers)) {
+                $this->cookies->set('Set-Cookie', $headers["Set-Cookie"]);
+            }
+
+            $verification_params = array(
+                "flow=$result->getId()",
+                "message=" . json_encode($ui->getMessages())
+            );
+            $redirect_url = getUrlForFlow('/', 'verification', $verification_params);
+
+            return $this->response->redirect($redirect_url, false, 303);
+        } catch (Exception $e) {
+            $params = array("return_to=$return_to");
+            $redirect_url = getUrlForFlow(
+                $this->config->kratos->browser_host,
+                'verification',
+                $params
+            );
+
+            return $this->response->redirect($redirect_url, true, 303);
+        }
+    }
+
+    private function _redirectOnSoftError(ApiException $e, $redirect_url)
+    {
+        $error = $e->getResponseObject()->getError();
+        $code = $error->getCode();
+
+        if ($code == 404 || $code == 410 || $code == 403) {
+            if ($error->getId() == 'session_aal2_required') {
+                // XXX need to handle with authenticatorAssuranceLevelError
+            }
+            return $this->response->redirect($redirect_url, true, 303);
+        }
+    }
+}
 // vim: set et sw=4 sts=4 ts=4:
