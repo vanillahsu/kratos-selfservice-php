@@ -7,9 +7,13 @@
 require_once APP_PATH . '/library/helper.php';
 
 use GuzzleHttp\Client;
+use Ory\Hydra\Client\Api\OAuth2Api;
+use Ory\Hydra\Client\Configuration as HConfiguration;
+use Ory\Hydra\Client\Model\AcceptOAuth2ConsentRequest;
+use Ory\Hydra\Client\Model\AcceptOAuth2ConsentRequestSession;
 use Ory\Kratos\Client\ApiException;
 use Ory\Kratos\Client\Api\FrontendApi;
-use Ory\Kratos\Client\Configuration;
+use Ory\Kratos\Client\Configuration as KConfiguration;
 use Ory\Kratos\Client\Model\UiNodeAttributes;
 use Ory\Kratos\Client\Model\UiNodeInputAttributes;
 use Ory\Kratos\Client\Model\UiText;
@@ -18,18 +22,66 @@ class IndexController extends ControllerBase
 {
     public function initialize()
     {
-        $config = Configuration::getDefaultConfiguration()->setHost(
-            $this->config->kratos->browser_host
+        $client = new Client();
+
+        $this->frontend_api = new FrontendApi(
+            $client,
+            KConfiguration::getDefaultConfiguration()->setHost(
+                $this->config->kratos->browser_url
+            )
         );
-        $client = new Client;
-        $this->api = new FrontendApi($client, $config);
+        $this->oauth2_client = new OAuth2Api(
+            $client,
+            HConfiguration::getDefaultConfiguration()->setHost(
+                $this->config->kratos->sdk_url
+            )
+        );
+    }
+
+    public function consentGetAction()
+    {
+        $consent_challenge = $this->request->get('consent_challenge');
+        if (!$consent_challenge) {
+            $this->logger->debug(
+                'Expected a consent challenge to be set but received none.'
+            );
+
+            return;
+        }
+
+        try {
+            $result = $this->oauth2_client->getOAuth2ConsentRequest(
+                $consent_challenge
+            );
+            $grant_scope = $result->getRequestedScope();
+            $grant_access_token_audience = $result->
+                getRequestedAccessTokenAudience();
+            $accept_oauth2_consent_request = new AcceptOAuth2ConsentRequest();
+            $accept_oauth2_consent_request->setGrantScope($grant_scope);
+            $accept_oauth2_consent_request->setGrantAccessTokenAudience(
+                $grant_access_token_audience
+            );
+            try {
+                $body = $this->oauth2_client->acceptOAuth2ConsentRequest(
+                    $consent_challenge,
+                    $accept_oauth2_consent_request
+                );
+                $this->response->redirect($body->getRedirectTo());
+            } catch (Exception $e) {
+                print($e);
+                $this->logger->debug($e);
+            }
+        } catch (Exception $e) {
+            print($e);
+            $this->logger->debug($e);
+        }
     }
 
     public function errorAction()
     {
         $id = $this->request->get('id');
         if ($id) {
-            $result = $this->api->getFlowError($id);
+            $result = $this->frontend_api->getFlowError($id);
             $this->view->error = $result->getError()["reason"];
         }
     }
@@ -63,7 +115,7 @@ class IndexController extends ControllerBase
         }
 
         $redirect_url = getUrlForFlow(
-            $this->config->kratos->browser_host,
+            $this->config->kratos->browser_url,
             'login',
             $params
         );
@@ -77,7 +129,7 @@ class IndexController extends ControllerBase
 
         try {
             $cookie = $this->request->getHeader('Cookie');
-            $result = $this->api->getLoginFlow($flow, $cookie);
+            $result = $this->frontend_api->getLoginFlow($flow, $cookie);
             $ui = $result->getUi();
             $messages = $ui->getMessages();
             if ($return_to === '') {
@@ -87,7 +139,7 @@ class IndexController extends ControllerBase
             if ($messages && count($messages) > 0) {
                 foreach ($messages as $message) {
                     if ($message->getId() === 4000010) {
-                        return _redirectToVerificationFlow(
+                        return $this->_redirectToVerificationFlow(
                             $return_to,
                             $ui
                         );
@@ -106,14 +158,14 @@ class IndexController extends ControllerBase
 
             $recovery_url = '';
             $registration_url = getUrlForFlow(
-                $this->config->kratos->browser_host,
+                $this->config->kratos->browser_url,
                 'registration',
                 $registration_params
             );
 
             if (!$result->getRefresh()) {
                 $recovery_url = getUrlForFlow(
-                    $this->config->kratos->browser_host,
+                    $this->config->kratos->browser_url,
                     'recovery',
                     array("return_to=$return_to")
                 );
@@ -121,7 +173,7 @@ class IndexController extends ControllerBase
 
             $this->view->data = ConvertToForm($ui);
         } catch (Exception $e) {
-            return _redirectOnSoftError($e, $redirect_url);
+            return $this->_redirectOnSoftError($e, $redirect_url);
         }
     }
 
@@ -130,9 +182,9 @@ class IndexController extends ControllerBase
         $flow = $this->request->get('flow');
         $return_to = $this->request->get('return_to');
 
-        $params = "return_to=$return_to";
+        $params = array("return_to=$return_to");
         $redirect_url = getUrlForFlow(
-            $this->config->kratos->browser_host,
+            $this->config->kratos->browser_url,
             'recovery',
             $params
         );
@@ -145,9 +197,27 @@ class IndexController extends ControllerBase
         }
 
         try {
+            $cookie = $this->request->getHeader('Cookie');
+            $result = $this->frontend_api->getRecoveryFlow($flow, $cookie);
+            $ui = $result->getUi();
 
-        } catch(Exception $e) {
+            if ($return_to == '') {
+                $return_to = $result->getReturnTo();
+            }
 
+            $params = array(
+                "return_to=$return_to"
+            );
+
+            $login_url = getUrlForFlow(
+                $this->config->kratos->browser_url,
+                'login',
+                $params
+            );
+            $this->view->data = ConvertToForm($ui);
+            $this->view->login_url = $login_url;
+        } catch (Exception $e) {
+            return $this->_redirectOnSoftError($e, $redirect_url);
         }
     }
 
@@ -183,7 +253,7 @@ class IndexController extends ControllerBase
         }
 
         $redirect_url = getUrlForFlow(
-            $this->config->kratos->browser_host,
+            $this->config->kratos->browser_url,
             'registration',
             $params
         );
@@ -197,10 +267,10 @@ class IndexController extends ControllerBase
 
         try {
             $cookie = $this->request->getHeader('Cookie');
-            $result = $this->api->getRegistrationFlow($flow, $cookie);
+            $result = $this->frontend_api->getRegistrationFlow($flow, $cookie);
             $this->view->data = ConvertToForm($result->getUi());
         } catch (Exception $e) {
-            return _redirectOnSoftError($e, $redirect_url);
+            return $this->_redirectOnSoftError($e, $redirect_url);
         }
     }
 
@@ -213,7 +283,7 @@ class IndexController extends ControllerBase
         $params = array("return_to=$return_to");
 
         $redirect_url = getUrlForFlow(
-            $this->config->kratos->browser_host,
+            $this->config->kratos->browser_url,
             'verification',
             $params
         );
@@ -227,7 +297,7 @@ class IndexController extends ControllerBase
 
         try {
             $cookie = $this->request->getHeader('Cookie');
-            $result = $this->api->getVerificationFlow($flow, $cookie);
+            $result = $this->frontend_api->getVerificationFlow($flow, $cookie);
 
             if ($return_to == '') {
                 $return_to = $result->getReturnTo() ?? '';
@@ -235,7 +305,7 @@ class IndexController extends ControllerBase
 
             $params = array("return_to=$return_to");
             $registration_url = getUrlForFlow(
-                $this->config->kratos->browser_host,
+                $this->config->kratos->browser_url,
                 'registration',
                 $params
             );
@@ -247,7 +317,7 @@ class IndexController extends ControllerBase
 
             $this->view->data = ConvertToForm($result->getUi());
         } catch (Exception $e) {
-            return _redirectOnSoftError($e, $redirect_url);
+            return $this->_redirectOnSoftError($e, $redirect_url);
         }
     }
 
@@ -260,7 +330,10 @@ class IndexController extends ControllerBase
     ) {
         try {
             $cookie = $this->request->getHeader('Cookie');
-            $result = $this->api->createBrowserLogoutFlow($cookie, $return_to);
+            $result = $this->frontend_api->createBrowserLogoutFlow(
+                $cookie,
+                $return_to
+            );
             return $result->getLogoutUrl();
         } catch (Exception $e) {
             $this->logger->debug('Unable to create logout URL: ' . $e->getMessage());
@@ -276,7 +349,7 @@ class IndexController extends ControllerBase
                 $result,
                 $_,
                 $headers
-            ] = $this->api->createBrowserVerificationFlowWithHttpInfo(
+            ] = $this->frontend_api->createBrowserVerificationFlowWithHttpInfo(
                 $return_to
             );
 
@@ -294,7 +367,7 @@ class IndexController extends ControllerBase
         } catch (Exception $e) {
             $params = array("return_to=$return_to");
             $redirect_url = getUrlForFlow(
-                $this->config->kratos->browser_host,
+                $this->config->kratos->browser_url,
                 'verification',
                 $params
             );
@@ -313,6 +386,25 @@ class IndexController extends ControllerBase
                 // XXX need to handle with authenticatorAssuranceLevelError
             }
             return $this->response->redirect($redirect_url, true, 303);
+        }
+    }
+
+    private function _extractSession($grant_scope)
+    {
+        $session = new AcceptOAuth2ConsentRequestSession();
+
+        $identity = $this->session->get('identity');
+        if (!$identity) {
+            return $session;
+        }
+
+        if (in_array('email', $grant_scope)) {
+            $addresses = $identity->getVerifiableAddresses();
+            if (count($addresses) > 0) {
+                $address = $addresses[0];
+                if ($address->getVia() === 'email') {
+                }
+            }
         }
     }
 }

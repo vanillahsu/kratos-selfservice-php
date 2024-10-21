@@ -4,6 +4,7 @@ $router = $di->getRouter();
 
 // Define your routes here
 
+$router->addGet('/consent', 'index::consentget');
 $router->addGet('/error', 'index::error');
 $router->addGet('/login', 'index::login');
 $router->addGet('/recovery', 'index::recovery');

@@ -21,8 +21,10 @@ return new \Phalcon\Config\Config(
             'baseUri'        => '/',
         ],
         'kratos' => [
-            'api_host' => 'http://192.168.1.254:4434',
-            'browser_host' => 'http://192.168.1.254:4433',
+            'admin_url' => 'http://192.168.1.254:4434',
+            'browser_url' => 'http://192.168.1.254:4433',
+            'public_url' => 'http://192.168.1.254:4433',
+            'sdk_url' => 'http://192.168.1.254:4445',
         ],
     ]
 );

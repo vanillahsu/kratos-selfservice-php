@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "8c2c337129b6dc514c7cace9b2a34316",
+    "content-hash": "49431c2f78aa87de8273888dc83083bc",
     "packages": [
         {
             "name": "guzzlehttp/guzzle",
@@ -134,16 +134,16 @@
         },
         {
             "name": "guzzlehttp/promises",
-            "version": "2.0.3",
+            "version": "2.0.4",
             "source": {
                 "type": "git",
                 "url": "https://github.com/guzzle/promises.git",
-                "reference": "6ea8dd08867a2a42619d65c3deb2c0fcbf81c8f8"
+                "reference": "f9c436286ab2892c7db7be8c8da4ef61ccf7b455"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/guzzle/promises/zipball/6ea8dd08867a2a42619d65c3deb2c0fcbf81c8f8",
-                "reference": "6ea8dd08867a2a42619d65c3deb2c0fcbf81c8f8",
+                "url": "https://api.github.com/repos/guzzle/promises/zipball/f9c436286ab2892c7db7be8c8da4ef61ccf7b455",
+                "reference": "f9c436286ab2892c7db7be8c8da4ef61ccf7b455",
                 "shasum": ""
             },
             "require": {
@@ -197,7 +197,7 @@
             ],
             "support": {
                 "issues": "https://github.com/guzzle/promises/issues",
-                "source": "https://github.com/guzzle/promises/tree/2.0.3"
+                "source": "https://github.com/guzzle/promises/tree/2.0.4"
             },
             "funding": [
                 {
@@ -213,7 +213,7 @@
                     "type": "tidelift"
                 }
             ],
-            "time": "2024-07-18T10:29:17+00:00"
+            "time": "2024-10-17T10:06:22+00:00"
         },
         {
             "name": "guzzlehttp/psr7",
@@ -330,6 +330,75 @@
                 }
             ],
             "time": "2024-07-18T11:15:46+00:00"
+        },
+        {
+            "name": "ory/hydra-client-php",
+            "version": "v2.2.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/ory/hydra-client-php.git",
+                "reference": "7c257da385b65507a950b99352b3a816b2fa0b1a"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/ory/hydra-client-php/zipball/7c257da385b65507a950b99352b3a816b2fa0b1a",
+                "reference": "7c257da385b65507a950b99352b3a816b2fa0b1a",
+                "shasum": ""
+            },
+            "require": {
+                "ext-curl": "*",
+                "ext-json": "*",
+                "ext-mbstring": "*",
+                "guzzlehttp/guzzle": "^7.3",
+                "guzzlehttp/psr7": "^1.7 || ^2.0",
+                "php": "^7.4 || ^8.0"
+            },
+            "require-dev": {
+                "friendsofphp/php-cs-fixer": "^3.5",
+                "phpunit/phpunit": "^8.0 || ^9.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Ory\\Hydra\\Client\\": "lib/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "Apache-2.0"
+            ],
+            "authors": [
+                {
+                    "name": "Ory Corp",
+                    "homepage": "https://www.ory.sh"
+                }
+            ],
+            "description": "Documentation for all of Ory Hydra's APIs.",
+            "homepage": "https://github.com/ory/hydra-client-php",
+            "keywords": [
+                "api",
+                "openapi",
+                "openapi-generator",
+                "openapitools",
+                "php",
+                "rest",
+                "sdk"
+            ],
+            "support": {
+                "issues": "https://github.com/ory/hydra-client-php/issues",
+                "source": "https://github.com/ory/hydra-client-php/tree/v2.2.1"
+            },
+            "funding": [
+                {
+                    "url": "https://opencollective.com/ory",
+                    "type": "open_collective"
+                },
+                {
+                    "url": "https://www.patreon.com/_ory",
+                    "type": "patreon"
+                }
+            ],
+            "time": "2024-07-08T13:24:07+00:00"
         },
         {
             "name": "ory/kratos-client-php",
